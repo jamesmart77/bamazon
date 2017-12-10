@@ -104,22 +104,45 @@ function getProductQty(productID) {
             }
         })
         .then(function (answer) {
-            let queryStatement = "SELECT stock, price FROM products WHERE id = '" + productID + "'"
+            let queryStatement = "SELECT stock, price, product_name FROM products WHERE id = '" + productID + "'"
             mySqlQuery(queryStatement, function (results) {
                 //console.log(results[0].stock + "\n" + answe);
-                if(results[0].stock < answer.productQty){
+                if (results[0].stock < answer.productQty) {
                     console.log("============================");
                     console.log("INSUFFICIENT STOCK to complete this order.\nCurrent stock volume is " + results[0].stock + ".\nTry again please.");
                     console.log("============================");
                 } else {
-                    var total = results[0].price * answer.productQty;
-                    console.log("============================");
-                    console.log("ORDER COMPLETE");
-                    console.log("INVOICE TOTAL: $" + total);
-                    console.log("============================");
+
+                    updateAfterPurchase(answer.productQty, results[0].stock, productID, results[0].price, results[0].product_name);
+
                 }
             });
-            
+
         });
     //});
+}
+
+function updateAfterPurchase(purchasedAmt, currentStock, productID, price, product_name) {
+    let newQty = currentStock - purchasedAmt;
+
+    let queryStatement = "UPDATE products SET stock = '" + newQty + "' WHERE id = '" + productID + "'";
+    mySqlQuery(queryStatement, function (results) {
+        if (results.serverStatus === 2) {
+            
+            let total = purchasedAmt * price;
+
+            console.log("PRODUCT INVENTORY UPDATED SUCCESSFULLY");
+            console.log("\n============================");
+            console.log(product_name.toUpperCase() + " ORDER COMPLETE");
+            console.log("INVOICE TOTAL: $" + total.toFixed(2));
+            console.log("Pay within 30 days or we'll come take your " + product_name);
+            console.log("\n============================");
+            connection.end();
+            
+        } else {
+            console.log("ERROR OCCURRED");
+            console.log("A processing error occurred while updating the inventory...please try again.");
+        }
+
+    });
 }
