@@ -13,21 +13,22 @@ var connection = mysql.createConnection({
     database: "bamazonDB"
 });
 
-connection.connect(function (err) {
-    if (err) throw err;
-    //print connection id
-    console.log("connected as id " + connection.threadId + "\n");
+module.exports = {
+    allProducts: function () {
+        connection.connect(function (err) {
+            if (err) throw err;
 
-    //sql for all products
-    let productAllQuery = "SELECT * FROM products";
+            //sql for all products
+            let productAllQuery = "SELECT * FROM products";
 
-    //query DB and once results returned call print fx
-    mySqlQuery(productAllQuery, function (result) {
-        console.log("callback successful");
-        printProducts(result);
-    });
-});
-
+            //query DB and once results returned call print fx
+            mySqlQuery(productAllQuery, function (result) {
+                console.log("callback successful");
+                printProducts(result)
+            });
+        });
+    }
+}
 
 function mySqlQuery(queryStatement, callback) {
     //query passed statement
@@ -37,7 +38,6 @@ function mySqlQuery(queryStatement, callback) {
             throw err
         }
         //results acquired, send to callback
-        //console.log(result);
         callback(result);
     });
 }
@@ -62,7 +62,25 @@ function printProducts(result) {
         console.log("============================");
     });
 
-    getProductID();
+    inquirer
+        .prompt({
+            name: "nextSteps",
+            type: "list",
+            choices: ["Yes", "No"],
+            message: "Would you like to make a purchase?",
+            validate: function (value) {
+                if (isNaN(value) === false) {
+                    return true;
+                }
+                return false;
+            }
+        })
+        .then(function (answer) {
+            if (answer.nextSteps === "Yes") {
+                getProductID();
+            }
+        });
+
 }
 
 function getProductID() {
@@ -120,7 +138,6 @@ function getProductQty(productID) {
             });
 
         });
-    //});
 }
 
 function updateAfterPurchase(purchasedAmt, currentStock, productID, price, product_name) {
@@ -140,9 +157,11 @@ function updateAfterPurchase(purchasedAmt, currentStock, productID, price, produ
             console.log("\n============================");
             connection.end();
 
+
         } else {
             console.log("ERROR OCCURRED");
             console.log("A processing error occurred while updating the inventory...please try again.");
+
         }
 
     });
